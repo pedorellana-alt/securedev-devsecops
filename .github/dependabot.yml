@@ -1,0 +1,16 @@
+# Actualizaciones automáticas de dependencias (GitHub Dependabot)
+# Abre Pull Requests cuando hay versiones nuevas o parches de seguridad.
+version: 2
+updates:
+  - package-ecosystem: "pip"        # Pipfile / Pipfile.lock / requirements.txt
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencias", "seguridad"]
+
+  - package-ecosystem: "docker"     # Imagen base del Dockerfile
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencias", "docker"]

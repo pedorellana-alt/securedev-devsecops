@@ -1,0 +1,19 @@
+# Configuración de Doxygen - documentación generada desde los comentarios del código
+PROJECT_NAME           = "SecureDev App"
+PROJECT_BRIEF          = "Aplicación Flask del pipeline DevSecOps (OCY1102 EV3)"
+OUTPUT_DIRECTORY       = docs
+OUTPUT_LANGUAGE        = Spanish
+INPUT                  = app.py tests README.md
+FILE_PATTERNS          = *.py *.md
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */.venv/* */reports/* */docs/*
+USE_MDFILE_AS_MAINPAGE = README.md
+OPTIMIZE_OUTPUT_JAVA   = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HAVE_DOT               = YES
+CALL_GRAPH             = YES
+QUIET                  = YES
+WARN_LOGFILE           = reports/doxygen-warnings.log
