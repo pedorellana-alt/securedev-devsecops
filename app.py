@@ -24,7 +24,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 
 ## Total de peticiones HTTP por método, endpoint y código de respuesta.
-REQUESTS = Counter("http_requests", "Total de peticiones HTTP",
+REQUESTS = Counter("app_http_requests", "Total de peticiones HTTP",
                    ["method", "endpoint", "status"])
 
 ## Peticiones que contienen patrones de ataque conocidos, por tipo.
