@@ -3,13 +3,14 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-# FASE 1: versiones antiguas con vulnerabilidades conocidas (CVE)
+# FASE 2: versiones mínimas sin CVE conocidos. pipenv lock fija la última versión segura.
 [packages]
-flask = "==2.3.0"
-werkzeug = "==2.3.7"
-jinja2 = "==3.1.2"
-requests = "==2.31.0"
-prometheus-client = "==0.17.1"
+flask = ">=3.1.1"
+werkzeug = ">=3.1.9"
+jinja2 = ">=3.1.6"
+requests = ">=2.33.0"
+prometheus-client = ">=0.20.0"
+gunicorn = ">=23.0.0"
 
 [dev-packages]
-pytest = "*"
+pytest = ">=8.0"

@@ -1,17 +1,20 @@
 ## @file app.py
-#  @brief Aplicación Flask de SecureDev - VERSIÓN VULNERABLE (fase 1).
-#  @details Basada en el "Código No Seguro" de la guía 3.2.2. Solo se agregó
-#  instrumentación para monitoreo (métricas Prometheus) y una página de inicio
-#  con un enlace, SIN corregir las vulnerabilidades originales:
-#   - XSS reflejado en /hello (el parámetro "name" se devuelve sin escapar).
-#   - Modo debug de Flask activado (expone el depurador interactivo de Werkzeug).
-#   - Dependencias desactualizadas con CVE conocidos (ver Pipfile).
+#  @brief Aplicación Flask de SecureDev - VERSIÓN CORREGIDA (fase 2).
+#  @details Correcciones aplicadas sobre el código vulnerable:
+#   - XSS reflejado: validación de entrada (lista blanca) + escape de salida.
+#   - Debug desactivado: se controla por variable de entorno y en producción
+#     se usa gunicorn (servidor WSGI de producción), no el servidor de desarrollo.
+#   - Cabeceras de seguridad HTTP (CSP, X-Frame-Options, nosniff, etc.).
+#   - Dependencias actualizadas a versiones sin CVE conocidos (ver Pipfile).
+#   - El contenedor corre con un usuario sin privilegios (ver Dockerfile).
 
+import os
 import re
 import time
 from urllib.parse import unquote_plus
 
 from flask import Flask, request, g
+from markupsafe import escape
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
@@ -57,6 +60,24 @@ def antes_de_peticion():
         app.logger.warning("Posible ataque %s desde %s: %s", tipo, request.remote_addr, texto)
 
 
+## Lista blanca para el parámetro "name": solo letras y espacios, 1 a 50 caracteres.
+NOMBRE_VALIDO = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,50}$")
+
+
+## Agrega cabeceras de seguridad HTTP a todas las respuestas (mitiga alertas de OWASP ZAP).
+@app.after_request
+def cabeceras_seguridad(resp):
+    resp.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'; form-action 'self'"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 ## Registra la métrica de la petición ya respondida.
 @app.after_request
 def despues_de_peticion(resp):
@@ -77,11 +98,15 @@ def index():
     return '<h1>SecureDev</h1><p><a href="/hello?name=Invitado">Saludar</a></p>'
 
 
-## Saluda al usuario. VULNERABLE: XSS reflejado (no escapa "name").
-@app.route('/hello')
+## Saluda al usuario. CORREGIDO: valida la entrada y escapa la salida.
+#  @return 200 con el saludo, o 400 si "name" no cumple la lista blanca.
+@app.route("/hello")
 def hello():
-    name = request.args.get('name')
-    return f"Hello, {name}!"
+    name = request.args.get("name", "Invitado").strip()
+    if not NOMBRE_VALIDO.fullmatch(name):
+        app.logger.warning("Entrada rechazada en /hello desde %s", request.remote_addr)
+        return "Parametro 'name' invalido", 400
+    return f"Hello, {escape(name)}!"
 
 
 ## Expone las métricas para Prometheus.
@@ -90,6 +115,9 @@ def metrics():
     return generate_latest(), 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
 
-if __name__ == '__main__':
-    # VULNERABLE: debug=True expone el depurador de Werkzeug.
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == "__main__":
+    # CORREGIDO: debug apagado por defecto y escucha solo en localhost.
+    # En el contenedor la app se sirve con gunicorn (ver Dockerfile).
+    app.run(host=os.getenv("APP_HOST", "127.0.0.1"),
+            port=int(os.getenv("APP_PORT", "5000")),
+            debug=os.getenv("FLASK_DEBUG") == "1")
