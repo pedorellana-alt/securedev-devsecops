@@ -1,5 +1,5 @@
 # FASE 2 (corregida): usuario sin privilegios + servidor de producción (gunicorn), sin debug
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
