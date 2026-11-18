@@ -98,7 +98,9 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f $APP_CONTAINER || true
+                    # Los logs del contenedor se envían a Logstash (ELK) por GELF
                     docker run -d --name $APP_CONTAINER --network $NETWORK -p 5000:5000 \
+                        --log-driver gelf --log-opt gelf-address=udp://localhost:12201 \
                         --restart unless-stopped $IMAGE:$BUILD_NUMBER
                     for i in $(seq 1 30); do
                         curl -fs http://$APP_CONTAINER:5000/ > /dev/null && echo "App desplegada OK" && exit 0
@@ -116,8 +118,10 @@ pipeline {
                     docker volume rm -f zap-wrk || true
                     docker volume create zap-wrk
                     docker run --rm -v zap-wrk:/zap/wrk alpine chmod 777 /zap/wrk
+                    # Reglas de ZAP: falsos positivos revisados y documentados (zap-rules.tsv)
+                    docker run --rm -i -v zap-wrk:/zap/wrk alpine sh -c 'cat > /zap/wrk/zap-rules.tsv' < zap-rules.tsv
                     docker run --name zap --network $NETWORK -v zap-wrk:/zap/wrk zaproxy/zap-stable \
-                        zap-full-scan.py -t http://$APP_CONTAINER:5000 -m 1 \
+                        zap-full-scan.py -t http://$APP_CONTAINER:5000 -m 1 -c zap-rules.tsv \
                         -r zap-report.html -J zap-report.json -w zap-report.md -I || true
                     docker cp zap:/zap/wrk/zap-report.html reports/ || true
                     docker cp zap:/zap/wrk/zap-report.json reports/ || true

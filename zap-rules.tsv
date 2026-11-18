@@ -1,0 +1,1 @@
+43	IGNORE	(Falso positivo revisado: Source Code Disclosure - File Inclusion. /hello solo devuelve un saludo validado y escapado; la app no lee archivos del disco)

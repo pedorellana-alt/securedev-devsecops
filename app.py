@@ -24,7 +24,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 
 ## Total de peticiones HTTP por método, endpoint y código de respuesta.
-REQUESTS = Counter("app_http_requests", "Total de peticiones HTTP",
+REQUESTS = Counter("http_requests", "Total de peticiones HTTP",
                    ["method", "endpoint", "status"])
 
 ## Peticiones que contienen patrones de ataque conocidos, por tipo.
@@ -57,7 +57,7 @@ def antes_de_peticion():
     texto = unquote_plus(request.full_path)
     for tipo in detectar_ataque(texto):
         SUSPICIOUS.labels(tipo=tipo).inc()
-        app.logger.warning("Posible ataque %s desde %s: %s", tipo, request.remote_addr, texto)
+        app.logger.error("Posible ataque %s desde %s: %s", tipo, request.remote_addr, texto)
 
 
 ## Lista blanca para el parámetro "name": solo letras y espacios, 1 a 50 caracteres.
@@ -67,13 +67,15 @@ NOMBRE_VALIDO = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,50}$")
 ## Agrega cabeceras de seguridad HTTP a todas las respuestas (mitiga alertas de OWASP ZAP).
 @app.after_request
 def cabeceras_seguridad(resp):
-    resp.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'; form-action 'self'"
+    resp.headers["Content-Security-Policy"] = ("default-src 'self'; base-uri 'none'; object-src 'none'; "
+                                               "frame-ancestors 'none'; form-action 'self'")
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
