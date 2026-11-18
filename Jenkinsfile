@@ -170,7 +170,7 @@ EOF
                       echo "- $(docker --version)"
                       echo ""
                       echo "## Reportes generados (SHA-256)"
-                      cd reports && sha256sum * | sed 's/^/- /'
+                      (cd reports && sha256sum $(ls | grep -v trazabilidad.md)) | sed 's/^/- /'
                     } > reports/trazabilidad.md
                     cat reports/trazabilidad.md
                 '''
